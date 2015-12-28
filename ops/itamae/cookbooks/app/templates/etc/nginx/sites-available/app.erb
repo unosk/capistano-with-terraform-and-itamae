@@ -1,0 +1,46 @@
+upstream app {
+    server unix:<%= @unicorn_socket %> fail_timeout=0;
+}
+
+server {
+    listen 80 default_server;
+    server_name _;
+
+    root <%= @root %>;
+    error_page 500 502 503 504 /500.html;
+
+    location / {
+        try_files /maintenance.html
+                  $uri $uri/index.html $uri.html
+                  @app;
+    }
+
+    location ~ ^/(assets)/ {
+        gzip_static on;
+        expires max;
+        add_header Cache-Control public;
+        break;
+    }
+
+    location @app {
+        proxy_read_timeout       300;
+        proxy_connect_timeout    300;
+        proxy_redirect           off;
+        proxy_buffer_size        128k;
+        proxy_buffers            4 256k;
+        proxy_busy_buffers_size  256k;
+
+        proxy_set_header Host              $http_host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+
+        proxy_pass http://app;
+    }
+
+    location /favicon.ico {
+        empty_gif;
+        access_log off;
+        log_not_found off;
+    }
+}

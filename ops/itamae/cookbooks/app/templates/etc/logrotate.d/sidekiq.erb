@@ -1,0 +1,16 @@
+<%= @log_file %> {
+    daily
+    missingok
+    rotate 90
+    dateext
+
+    compress
+    delaycompress
+
+    create 0664 <%= @app_user %> <%= @app_user %>
+    su <%= @app_user %> <%= @app_user %>
+
+    lastaction
+        service sidekiq rotate
+    endscript
+}

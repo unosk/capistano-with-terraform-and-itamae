@@ -1,0 +1,65 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          sidekiq
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Manage sidekiq background worker
+# Description:       Start, stop, restart sidekiq background worker for a specific application.
+### END INIT INFO
+set -e
+
+RAILS_ENV=<%= @app_environment %>
+APP_ROOT=<%= @app_root %>
+APP_USER=<%= @app_user %>
+PID=$APP_ROOT/tmp/pids/sidekiq.pid
+CMD_START="bundle exec sidekiq -d -e $RAILS_ENV -C $APP_ROOT/config/sidekiq.yml"
+CMD_QUIET="bundle exec sidekiqctl quiet $PID"
+CMD_STOP="bundle exec sidekiqctl stop $PID"
+
+export SIDEKIQ_CONCURRENCY=<%= @concurrency %>
+export SIDEKIQ_TIMEOUT=<%= @timeout %>
+
+action="$1"
+set -u
+
+cd $APP_ROOT || exit 1
+
+sig () {
+  test -s "$PID" && kill -$1 `cat $PID`
+}
+
+run() {
+  su $APP_USER -c "$1"
+}
+
+case $action in
+quiet)
+  ! sig 0 && echo >&2 "Not running" && exit 0
+  run "$CMD_QUIET"
+  ;;
+start)
+  sig 0 && echo >&2 "Already running" && exit 0
+  run "$CMD_START"
+  ;;
+stop)
+  ! sig 0 && echo >&2 "Not running" && exit 0
+  run "$CMD_STOP"
+  ;;
+restart)
+  sig 0 && run "$CMD_STOP"
+  run "$CMD_START"
+  ;;
+status)
+  sig 0 && echo "sidekiq with PID `cat $PID` is running" && exit 0
+  echo "sidekiq is not running"
+  ;;
+rotate)
+  sig USR2
+  ;;
+*)
+  echo >&2 "Usage: $0 <start|stop|restart|upgrade|force-stop|status|rotate>"
+  exit 1
+  ;;
+esac

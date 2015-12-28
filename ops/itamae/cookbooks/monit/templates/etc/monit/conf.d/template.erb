@@ -1,0 +1,6 @@
+check process <%= @name %> with pidfile <%= @pidfile %>
+  start program = "<%= @start_program %>"
+  stop program = "<%= @stop_program %>"
+<% @policies.each do |polocy| -%>
+  <%= polocy %>
+<% end -%>

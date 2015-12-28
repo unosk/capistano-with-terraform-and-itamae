@@ -1,0 +1,10 @@
+app:
+  deploy_as: vagrant
+  deploy_to: /home/vagrant/exampleapp
+  environment: production
+unicorn:
+  processes: 2
+  timeout: 30
+sidekiq:
+  concurrency: 4
+  timeout: 60

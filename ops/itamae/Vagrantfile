@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = '2'
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = 'ubuntu/trusty64'
+
+  config.vm.network :private_network, ip: '192.168.33.10'
+
+  config.vm.provider 'virtualbox' do |v|
+    v.memory = 1024*2
+  end
+
+  config.vm.synced_folder './', '/tmp/itamae'
+
+  config.vm.provision 'shell', inline: <<-SCRIPT
+    which itamae > /dev/null 2>&1 && exit 0
+    echo 'deb https://dl.bintray.com/itamae/itamae trusty contrib' | sudo tee /etc/apt/sources.list.d/itamae.list
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv D401AB61
+    sudo apt-get update
+    sudo apt-get install itamae
+  SCRIPT
+
+  config.vm.provision 'shell', inline: <<-SCRIPT
+    sudo itamae local --node-yaml /tmp/itamae/nodes/vagrant.yml /tmp/itamae/bootstrap.rb
+  SCRIPT
+
+  config.vm.provision 'shell', inline: <<-SCRIPT
+    cd /tmp/itamae/serverspec
+    /opt/itamae/embedded/bin/gem install serverspec --no-ri --no-rdoc
+    /opt/itamae/embedded/bin/rake spec
+  SCRIPT
+end
